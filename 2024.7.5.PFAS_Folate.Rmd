@@ -43,8 +43,8 @@ folate_data <- read_sas("/Users/amber/Desktop/Harin/PFAS and Folate/Analysis/Dat
 pfas_only <- pfas_long %>%
   filter(visit == '16W') %>% # removes all values not at 16 weeks' gestation
   filter(twin_set=="") %>% # removes all twins, since twin gestations impact the body in different ways than single gestations
-  select(-ANALYTE_LOD) %>% 
-  select(-flg_lod, -twin_set, -visit) %>% 
+  dplyr::select(-ANALYTE_LOD) %>% 
+  dplyr::select(-flg_lod, -twin_set, -visit) %>% 
   pivot_wider(names_from=analyte_code, values_from=pfc) # changes the orientation of the "pfas_only" data set so that participant id is one column and each PFAS is a different column.
 
 # Merging the pfas_only and folate data sets based on participant id
@@ -74,6 +74,7 @@ This block of code:
         b. Prenatal vitamin intake (Daily, Less than daily)
         c. Parity (Nulliparous, Parous)
      Note. These categories were decided after extensive functional form evaluation balancing AICs and biological interpretation as      well as addressing data sparsity concerns. 
+  
   2. Categorizes 
         a. Cotinine (<0.015 [Unexposed], 0.015 to 3 [Secondhand], >3 [Active smoker])
         b. Annual household income (<$20,000, $20,000 - $40,000, $40,000 - $80,000, >$80,000)
@@ -84,35 +85,24 @@ This block of code:
 #Categorizing:
     #Maternal Race
     pfas_folate$mom_race <- as.factor(ifelse(is.na(pfas_folate$mom_race), NA, 
-                                          ifelse(pfas_folate$mom_race == "White, non-Hispanic", "White, non-Hispanic", "Other")
-                                          )
-                                      )
+                                          ifelse(pfas_folate$mom_race == "White, non-Hispanic", "White, non-Hispanic", "Other")))
     # Prenatal vitamin intake
     pfas_folate$prenatal_vitamin <- ifelse(is.na(pfas_folate$prenatal_vitamin), NA, 
-                                          ifelse(pfas_folate$prenatal_vitamin == "Every day", "Every day", "Less than daily")
-                                          )
+                                          ifelse(pfas_folate$prenatal_vitamin == "Every day", "Every day", "Less than daily"))
     # Parity
     pfas_folate$parity <- ifelse(is.na(pfas_folate$parityn), NA,
-                                  ifelse(pfas_folate$parityn == 0, "Nulliparous", "Parous")
-                                 )
+                                  ifelse(pfas_folate$parityn == 0, "Nulliparous", "Parous"))
     # Cotinine (only used in Table 2)
     pfas_folate$cotinine_16w_cat <- as.factor(ifelse
                                               (is.na(pfas_folate$cotinine_16w), NA, 
                                           ifelse(pfas_folate$cotinine_16w <0.015, "Unexposed",
-                                                 ifelse(pfas_folate$cotinine_16w > 3, "Active Smoker", "Secondhand")
-                                                 )
-                                              )
-                                          )
+                                                 ifelse(pfas_folate$cotinine_16w > 3, "Active Smoker", "Secondhand"))))
     # Annual household income
     pfas_folate$midincome_cat <- as.factor(ifelse(is.na(pfas_folate$midincome), NA, 
                                           ifelse(pfas_folate$midincome <20000, "<$20,000",
                                                  ifelse(pfas_folate$midincome <40000, "$20,000 to $40,000",
-                                                        ifelse(pfas_folate$midincome <80000, "$40,000 to $80,000", ">$80,000")
-                                                        )
-                                                 )
-                                              )
-                                          )
-
+                                                        ifelse(pfas_folate$midincome <80000, "$40,000 to $80,000", ">$80,000")))))
+    
 # Log-transforming cotinine
 pfas_folate$cotinine_16w_log2 <- log2(pfas_folate$cotinine_16w)
 ```
@@ -122,40 +112,56 @@ These block of code
     1. Summarizes the numerical values of the data set by finding the mean, standard deviation, median, percentiles, and min/max     values of the PFAS. 
     2. Creates a summary table ("pfas_summary") showing the frequency and percentage of each PFAS that is above/below the limit of detection (LOD).
 ```{r Table_1}
-# Converting "THFB" to a numeric from character variable
-pfas_folate$THFB <- as.numeric(pfas_folate$THFB) 
-
 # Looking at the univariate statistics and the number of missing values for the PFAS
-summary(pfas_folate$`ET-PFOSA-ACOH`)
-summary(pfas_folate$`ME-PFOSA-ACOH2`)
-summary(pfas_folate$PFDEA)
-summary(pfas_folate$PFHXS)
-summary(pfas_folate$PFNA)
-summary(pfas_folate$PFOA)
-summary(pfas_folate$PFOS)
-summary(pfas_folate$PFOSA)
+# Creating a function to create a summary table with the min, max and quartiles
+create_summary <- function(column) {
+  data.frame(
+    Min = round(min(column, na.rm = TRUE), 1),
+    Q1 = round(quantile(column, 0.25, na.rm = TRUE), 1),
+    Median = round(median(column, na.rm = TRUE), 1),
+    Q3 = round(quantile(column, 0.75, na.rm = TRUE), 1),
+    Max =round( max(column, na.rm = TRUE), 1))
+}
+
+# Listing the PFAS to be summarized in the order of the table
+PFAS_list <- c("PFOA", "PFNA", "PFDEA",
+               "PFHXS", "PFOS",
+               "PFOSA", "ET-PFOSA-ACOH", "ME-PFOSA-ACOH2")
+
+# Creating a summary table
+pfas_univariate <- lapply(PFAS_list, function(col) {
+  create_summary(pfas_folate[[col]])
+}) %>%
+  bind_rows() %>%
+  mutate(Analyte = PFAS_list) %>%
+  dplyr::select(Analyte, everything())
 
 #Note. Too few PFOSA and ET-PFOSA-ACHOH to look at continuously (missing PFOSA N=205, missing ET_PFOSA-ACHOH N=287)
   # PFDEA is missing N=13 and PFHxS is missing 1. 
   # It is important to note: In this case, all PFAS were measured. As such, missingness denotes those below the LOD, not true missing
 
-#Creating a summary table to describe the n, n<LOD, percent <LOD, percent>=LOD. 
-pfas_summary <- pfas_long %>%
+#Creating a summary table to describe the n (percent >=LOD)
+pfas_LOD_info <- pfas_long %>%
   filter(visit == '16W') %>%
   filter(twin_set == "") %>%
   semi_join(pfas_folate, by = "participant_id") %>%
   group_by(analyte_code) %>%
-  summarize(N = n(), 
-            Above_LOD = (n() - sum(flg_lod)), 
-            Percent_Below_LOD = (100 - (mean(flg_lod) * 100)), 
-            Below_LOD = (mean(flg_lod) * 100)
-            )
+  summarize(
+    N = n(),
+    N_Above_LOD = n() - sum(flg_lod),
+    Percent_Above_LOD = 100 - (mean(flg_lod) * 100),
+    N_Percent_Above_LOD = paste0(n(), " (", round(100 - (mean(flg_lod) * 100), 2), ")")) %>%
+    dplyr::select(analyte_code, N_Percent_Above_LOD)
 
-#Printing the summary table
-pfas_summary
+# Joining the two summary tables
+Table_1 <- pfas_univariate %>%
+  left_join(pfas_LOD_info, by = c("Analyte" = "analyte_code"))
+
+# Printing the combined summary table
+print(Table_1)
 
 #Removing unneeded variables
-rm(pfas_long)
+rm(pfas_long, create_summary, PFAS_list, pfas_univariate, pfas_LOD_info)
 ```
 
 This block of code 
@@ -180,9 +186,7 @@ pfas_folate <- pfas_folate %>%
 
     # PFDEA
       pfas_folate$PFDEA_cat <- as.factor(ifelse(is.na(pfas_folate$PFDEA) | pfas_folate$PFDEA < 0.2, "<0.2", 
-                                                ifelse(pfas_folate$PFDEA == 0.2, "0.2", ">0.2")
-                                                )
-                                         )
+                                                ifelse(pfas_folate$PFDEA == 0.2, "0.2", ">0.2")))
 ```
 
 Table 2. This block of code 
@@ -190,51 +194,44 @@ Table 2. This block of code
       
 Note. Continuous variables have already been evaluated for normality to ensure that mean (SD) is the best representation of central tendency. 
 ```{r Table_2_demographics}
+# Converting "THFB" to a numeric from character variable
+pfas_folate$THFB <- as.numeric(pfas_folate$THFB) 
+
 # Looking at mean and SD for continuous variables
   #Note. Both variables were evaluated and determined to be normally distributed. As such, mean and SD were determined to be the best calculations for central tendency. 
+# Calculate means and standard deviations for all continuous variables
+maternal_age_mean_sd <- paste(round(mean(pfas_folate$momagedeliv), 1), " (", round(sd(pfas_folate$momagedeliv), 2), ")", sep = "")
+folate_mean_sd <- paste(round(mean(pfas_folate$WBF2), 1), " (", round(sd(pfas_folate$WBF2), 2), ")", sep = "")
+# Putting these into a data frame to easily print
+Table_2_cont <- data.frame(
+  Variable = c("Maternal Age", "Folate"),
+  Mean_SD = c(maternal_age_mean_sd, folate_mean_sd))
 
-  print ("Means and SDs for Continuous Variables")
-  #Maternal age:
-    print ("Maternal Age: Mean")
-    mean(pfas_folate$momagedeliv) # no missing values
-    print ("Maternal Age: SD")
-    sd(pfas_folate$momagedeliv)
-  # Folate levels:
-    print ("Folate: Mean")
-    mean(pfas_folate$WBF2) # no missing values
-    print ("Folate: SD")
-    sd(pfas_folate$WBF2)
+# Printing the results the table
+print(Table_2_cont)
 
-# Looking at number and frequency for categorical variables
-    # Creating a list of category variables
-    categorical_v <- c("mom_race", "midincome_cat", "cotinine_16w_cat", "prenatal_vitamin", "parity")
-    
-    # Creating a function to put all of the categorical variables into a table:
-    table_cat <- function(data, variable) {
-      # Creating a frequency and percent table functions to use in next steps
-      freq_table <- table(data[[variable]])
-      perc_table <- prop.table(freq_table) * 100
-      # Combining frequencies and percentages into a data frame
-      summary_table <- data.frame(Category = names(freq_table),
-        Frequency = as.vector(freq_table),
-        Percentage = round(as.vector(perc_table), 1) # rounding to 2 decimal places
-        ) 
-      return(summary_table)}
-    
-    # Creating an empty dataframe to use
-    demographics_cat <- data.frame()
-    # Writing a loop to feed in all the variables in the previously created categorical_v list
-    for (var in categorical_v) {summary_table <- table_cat(pfas_folate, var)
-      summary_table$Variable <- var  # Add a column for the variable name
-      demographics_cat <- rbind(demographics_cat, summary_table)}
+# Creating a list of categorical variables
+categorical_v <- c("mom_race", "midincome_cat", "cotinine_16w_cat", "prenatal_vitamin", "parity")
+
+# Creating a function to create a summary table for all my categorical variable
+table_cat <- function(data, variable) {
+  freq_table <- table(data[[variable]])
+  perc_table <- round(prop.table(freq_table) * 100, 1)
+  summary_table <- data.frame(
+    Variable = variable,
+    Category = names(freq_table),
+    `N (%)` = paste(freq_table, "(", perc_table, ")", sep = ""))
+  return(summary_table)
+}
+
+# Creating the summary tables for the categorical variables
+Table_2_cat <- do.call(rbind, lapply(categorical_v, function(var) table_cat(pfas_folate, var)))
 
 # Printing the results
-kable(demographics_cat, format = "html", col.names = c("Variable", "Category", "Frequency", "Percentage")) %>%
-  kable_styling(full_width = FALSE) %>%
-  row_spec(0:nrow(demographics_cat), background = "white")
+print(Table_2_cat)
 
 # Removing items that are unnecessary
-rm(table_cat, var, summary_table)
+rm(table_cat, folate_mean_sd, maternal_age_mean_sd)
 ```
 
 ```{r Table_2_folate}
@@ -242,20 +239,21 @@ rm(table_cat, var, summary_table)
 calc_mean_sd <- function(df, cat_var, value_var) {
   df %>%
     group_by(!!sym(cat_var)) %>%
-    summarize(mean = round(mean(!!sym(value_var), na.rm = TRUE), 1),
-              sd = round(sd(!!sym(value_var), na.rm = TRUE), 1)) %>%
+    summarize(mean_sd = paste0(
+      round(mean(!!sym(value_var), na.rm = TRUE), 1), 
+      " (", round(sd(!!sym(value_var), na.rm = TRUE), 2), ")")) %>%
     mutate(variable = cat_var) %>%
     rename(category = !!sym(cat_var))
-  }
+}
 
 # Applying the function to each categorical variable
 results <- lapply(categorical_v, calc_mean_sd, df = pfas_folate, value_var = "WBF2")
 
 # Combining all results into one data frame
-folate_by_cat <- bind_rows(results)
+Table_2_folate <- bind_rows(results)
 
 # Print the results
-print(folate_by_cat) 
+print(Table_2_folate) 
 
 # Removing items that are unnecessary
 rm(categorical_v, calc_mean_sd, results)
@@ -267,8 +265,8 @@ This block of code
 # Creating a data set of the numerical 'pfas_folate' data called data_num to be used in creating a correlation matrix. 
     #Note. Only PFAS that are analyzed continuously are included
 data_num <- pfas_folate %>%
-  select(`ME-PFOSA-ACOH2_log2`, PFHXS_log2, PFNA_log2, PFOA_log2, PFOS_log2) %>%
-  select(where(is.numeric))
+  dplyr::select(`ME-PFOSA-ACOH2_log2`, PFHXS_log2, PFNA_log2, PFOA_log2, PFOS_log2) %>%
+  dplyr::select(where(is.numeric))
 data_num <- data_num %>%
   rename(`Me-PFOSA-AcOH` = `ME-PFOSA-ACOH2_log2`,
     PFHxS = PFHXS_log2,
@@ -314,8 +312,9 @@ fig_cont <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/SFigu
        dpi = 300)
 
 # Removing items that are unnecessary
-rm(pfas_folate2, data_num, corr_mat, melted_corr_mat, fig_cont )
+rm(pfas_folate2, data_num, corr_mat, melted_corr_mat, fig_cont, PFAS_corr)
 ```
+
 This block of code 
     1. Runs the linear regression models for the 5 continuously analyzed log2(PFAS) adjusting for parity, prenatal vitamin intake, maternal race, income, maternal age, and cotinine.
 ``` {r Table_S1_LR_linear_adj}
@@ -323,7 +322,7 @@ This block of code
 pfas_folate$MeFOSAA_log2 <- pfas_folate$`ME-PFOSA-ACOH2_log2`
 
 # Creating a list of PFAS variables to evaluate
-PFAS <- c('MeFOSAA_log2', 'PFHXS_log2', 'PFNA_log2', 'PFOA_log2', 'PFOS_log2')
+PFAS <- c('PFOA_log2', 'PFOS_log2', 'PFNA_log2', 'PFHXS_log2', 'MeFOSAA_log2')
 
 # Creating a function to fit the model and extract results
     #Note. All categorical variables have been checked to ensure they are not numerically coded
@@ -333,16 +332,14 @@ extract_model_results <- function(pfas_var, data) {formula <- as.formula(paste("
   conf_int <- confint(model)
 #Creating a dataframe with all the needed output for tables
   data.frame(PFAS = pfas_var,
-    Estimate = round(summary_fit$coefficients[pfas_var, "Estimate"], 1),
-    CI_Lower = round(conf_int[pfas_var, 1], 1),
-    CI_Upper = round(conf_int[pfas_var, 2], 1),
-    P_Value = round(summary_fit$coefficients[pfas_var, "Pr(>|t|)"], 3))}
+    Estimate_CI = paste0(round(summary_fit$coefficients[pfas_var, "Estimate"], 1),
+                         " (", round(conf_int[pfas_var, 1], 1), ", ", round(conf_int[pfas_var, 2], 1), ")"))}
 
 # Looping through the PFAS variables in my PFAS list and combining the results into a single dataframe. 
-linear_results_adj <- do.call(rbind, lapply(PFAS, extract_model_results, data = pfas_folate))
+Table_S1_cont_adj <- do.call(rbind, lapply(PFAS, extract_model_results, data = pfas_folate))
 
 # Printing the results
-print(linear_results_adj)
+print(Table_S1_cont_adj)
 
 # Removing items that are unnecessary
 rm(extract_model_results)
@@ -363,18 +360,14 @@ extract_model_results_CRUDE <- function(pfas_var, data) {
 #Creating a dataframe with all the needed output
   data.frame(
     PFAS = pfas_var,
-    Estimate = round(summary_fit$coefficients[pfas_var, "Estimate"], 1),
-    CI_Lower = round(conf_int[pfas_var, 1], 1),
-    CI_Upper = round(conf_int[pfas_var, 2], 1),
-    P_Value = round(summary_fit$coefficients[pfas_var, "Pr(>|t|)"], 3)
-  )
-  }
+    Estimate_CI = paste0(round(summary_fit$coefficients[pfas_var, "Estimate"], 1),
+                         " (", round(conf_int[pfas_var, 1], 1), ", ", round(conf_int[pfas_var, 2], 1), ")"))}
 
 # Looping through the PFAS variables in the PFAS list in the previous block of code and combining the results
-linear_results_CRUDE <- do.call(rbind, lapply(PFAS, extract_model_results_CRUDE, data = pfas_folate))
+Table_S1_cont_CRUDE <- do.call(rbind, lapply(PFAS, extract_model_results_CRUDE, data = pfas_folate))
 
 # Printing the results
-print(linear_results_CRUDE)
+print(Table_S1_cont_CRUDE)
 
 # Removing items that are unnecessary
 rm(extract_model_results_CRUDE, PFAS)
@@ -405,22 +398,18 @@ etfosaa_coef_names <- grep("ETPFOSA_cat", etfosaa_coef_names, value = TRUE)
 
 # Putting the results into 2 data frames
 pfdea_results_df <- data.frame(PFAS = pfdea_coef_names,
-  Estimate = round(pfdea_summary$coefficients[pfdea_coef_names, "Estimate"], 1),
-  CI_Lower = round(pfdea_conf_int[pfdea_coef_names, 1], 1),
-  CI_Upper = round(pfdea_conf_int[pfdea_coef_names, 2], 1),
-  P_Value = round(pfdea_summary$coefficients[pfdea_coef_names, "Pr(>|t|)"], 3))
+                               Estimate_CI = paste0(Estimate_CI = round(pfdea_summary$coefficients[pfdea_coef_names, "Estimate"], 1), 
+  " (", round(pfdea_conf_int[pfdea_coef_names, 1], 1), ", ", round(pfdea_conf_int[pfdea_coef_names, 2], 1), ")"))
 
 etfosaa_results_df <- data.frame(PFAS = etfosaa_coef_names,
-  Estimate = round(etfosaa_summary$coefficients[etfosaa_coef_names, "Estimate"], 1),
-  CI_Lower = round(etfosaa_conf_int[etfosaa_coef_names, 1], 1),
-  CI_Upper = round(etfosaa_conf_int[etfosaa_coef_names, 2], 1),
-  P_Value = round(etfosaa_summary$coefficients[etfosaa_coef_names, "Pr(>|t|)"], 3))
+                                 Estimate_CI = paste0(Estimate_CI = round(etfosaa_summary$coefficients[etfosaa_coef_names, "Estimate"], 1), 
+  " (", round(etfosaa_conf_int[etfosaa_coef_names, 1], 1), ", ", round(etfosaa_conf_int[etfosaa_coef_names, 2], 1), ")"))
 
 # Merging the two results data frames
-categorical_results_adj <- rbind(pfdea_results_df, etfosaa_results_df)
+Table_S1_cat_adj <- rbind(etfosaa_results_df, pfdea_results_df)
 
 # Printing the merged results
-print(categorical_results_adj)
+print(Table_S1_cat_adj)
 
 # Removing items that are unnecessary
 rm (pfdea_results, etfosaa_results, pfdea_summary, etfosaa_summary, pfdea_conf_int, etfosaa_conf_int, pfdea_coef_names, etfosaa_coef_names, pfdea_results_df, etfosaa_results_df)
@@ -453,25 +442,46 @@ etfosaa_coef_names <- grep("ETPFOSA_cat", etfosaa_coef_names, value = TRUE)
 # Putting the results into 2 data frames
 #PFDEA
 pfdea_results_df <- data.frame(PFAS = pfdea_coef_names,
-  Estimate = round(pfdea_summary$coefficients[pfdea_coef_names, "Estimate"], 1),
-  CI_Lower = round(pfdea_conf_int[pfdea_coef_names, 1], 1),
-  CI_Upper = round(pfdea_conf_int[pfdea_coef_names, 2], 1),
-  P_Value = round(pfdea_summary$coefficients[pfdea_coef_names, "Pr(>|t|)"], 3))
+                               Estimate_CI = paste0(
+                                  round(pfdea_summary$coefficients[pfdea_coef_names, "Estimate"], 1),
+                                      " (", round(pfdea_conf_int[pfdea_coef_names, 1], 1), ", ", 
+                                      round(pfdea_conf_int[pfdea_coef_names, 2], 1), ")"))
 #Et-PFOSAA
 etfosaa_results_df <- data.frame(PFAS = etfosaa_coef_names,
-  Estimate = round(etfosaa_summary$coefficients[etfosaa_coef_names, "Estimate"], 1),
-  CI_Lower = round(etfosaa_conf_int[etfosaa_coef_names, 1], 1),
-  CI_Upper = round(etfosaa_conf_int[etfosaa_coef_names, 2], 1),
-  P_Value = round(etfosaa_summary$coefficients[etfosaa_coef_names, "Pr(>|t|)"], 3))
+                                 Estimate_CI = paste0(round(etfosaa_summary$coefficients[etfosaa_coef_names, "Estimate"], 1),
+                                        " ", round(etfosaa_conf_int[etfosaa_coef_names, 1], 1), ", ", 
+                                        round(etfosaa_conf_int[etfosaa_coef_names, 2], 1), ")"))
 
 # Merging the 2 PFAS-specific data frames into a single data frame
-categorical_results_CRUDE <- rbind(pfdea_results_df, etfosaa_results_df)
+Table_S1_cat_CRUDE <- rbind(etfosaa_results_df, pfdea_results_df)
 
 # Printing the merged results
-print(categorical_results_CRUDE)
+print(Table_S1_cat_CRUDE)
 
 # Removing items that are unnecessary
 rm (pfdea_results, etfosaa_results, pfdea_summary, etfosaa_summary, pfdea_conf_int, etfosaa_conf_int, pfdea_coef_names, etfosaa_coef_names, pfdea_results_df, etfosaa_results_df)
+```
+
+This block of code 
+  1. Creates the output for Supplemental Table 1 by combing the four tables I created in the 2 code blocks above. 
+``` {r Table_S1_Final}
+# Combining the 2 adjusted dataframes
+Table_S1_adj <- rbind(Table_S1_cont_adj, Table_S1_cat_adj)
+
+# Combining the 2 crude dataframes
+Table_S1_CRUDE <- rbind(Table_S1_cont_CRUDE, Table_S1_cat_CRUDE)
+
+# Placing the 2 new dataframes side by side
+Table_S1 <- cbind(Table_S1_CRUDE, Table_S1_adj[, -1])
+
+# Creating column headers
+colnames(Table_S1) <- c("PFAS", "Crude Estimate (95% CI)", "Adjusted Estimate (95% CI)")
+
+# Printing out Supplemental Table 1
+print(Table_S1)
+
+# Removing the other 4 tables and the newly created adj and crude tables for simplicity
+rm (Table_S1_cont_adj, Table_S1_cat_adj, Table_S1_cont_CRUDE, Table_S1_cat_CRUDE, Table_S1_adj, Table_S1_CRUDE)
 ```
 
 This block of code 
@@ -483,8 +493,7 @@ data <- data.frame(
                 levels = c("PFOS", "PFOA", "PFNA", "PFHxS", "Me-PFOSA-AcOH")),
   Estimate = c(5.7, 11.8, 27.1, 13.7, -5.6),
   Lower_CI = c(-27.9, -21.6, -18.4, -10.2, -32.9),
-  Upper_CI = c(39.2, 45.2, 72.6, 37.6, 21.8)
-)
+  Upper_CI = c(39.2, 45.2, 72.6, 37.6, 21.8))
 
 # Creating the plot
 fig1_cont<- ggplot(data, aes(x = Estimate, y = PFAS)) +
@@ -502,8 +511,7 @@ fig1_cont<- ggplot(data, aes(x = Estimate, y = PFAS)) +
     plot.title = element_text(color = "black", size = 12),
     axis.ticks.x = element_line(color = "black"),
     panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
-  )
+    panel.grid.minor = element_blank())
 
 #Exporting the figure out into a folder on my computer
 fig1_cont <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure1_cont.tiff", plot = fig1_cont, 
@@ -524,8 +532,7 @@ data <- data.frame(
                 levels = c("PFDEA (>0.2 ng/mL)", "PFDEA (0.2 ng/mL)", "", "Et-FOSAA (≥LOD)")),
   Estimate = c(51.0, 67.4, NA, -32.2),
   Lower_CI = c(-18.4, 4.5, NA, -87.3),
-  Upper_CI = c(120.3, 130.4, NA, 22.9)
-)
+  Upper_CI = c(120.3, 130.4, NA, 22.9))
 
 # Making the plot
 fig1_cat <- ggplot(data, aes(x = Estimate, y = PFAS)) +
@@ -543,10 +550,9 @@ fig1_cat <- ggplot(data, aes(x = Estimate, y = PFAS)) +
     plot.title = element_text(color = "black", size = 12),
     axis.ticks.x = element_line(color = "black"),
     panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
-  )
+    panel.grid.minor = element_blank())
 
-#Exporting the figure out
+# Exporting the figure out
 fig1_cat <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure1_cat.tiff", plot = fig1_cat, 
        device = "tiff", 
        width = 7, height = 1.7, units = "in", 
@@ -602,8 +608,7 @@ This block of code creates
 qgcomp.df <- data.frame(
   category = c("PFHxS", "PFNA", "Me-PFOSA-AcOH", "PFOS", "PFOA"),
   value_positive = c(0.594, 0.406, NA, NA, NA),
-  value_negative = c(NA, NA, -0.424, -0.389, -0.187)
-)
+  value_negative = c(NA, NA, -0.424, -0.389, -0.187))
 
 qgcomp_wt_plot <- ggplot(qgcomp.df, aes(y = category)) +
   geom_bar(aes(x = value_positive), stat = "identity", fill = "red", position = "identity") +
@@ -618,14 +623,12 @@ qgcomp_wt_plot <- ggplot(qgcomp.df, aes(y = category)) +
     axis.text.y = element_text(size = 10, color = "black"),
     axis.title.x = element_text(size = 12, color = "black"),
     axis.title.y = element_text(size = 12, color = "black"),
-    axis.ticks.x = element_line(color = "black", size = 0.3)
-  ) +
+    axis.ticks.x = element_line(color = "black", size = 0.3)) +
   labs(y = "", x = c("Negative weights                                Positive weights")) + #Only way I knew to get the spacing I wanted. There is probably a better way to do this. 
   scale_x_continuous(
     breaks = seq(-1, 1, by = 0.25),
     limits = c(-.9, .9),
-    labels = seq(-1, 1, by = 0.25)
-  ) +
+    labels = seq(-1, 1, by = 0.25)) +
   geom_vline(xintercept = 0, color = "black", size = 0.5)
 
 #Exporting the figure out into a folder on my computer
@@ -960,7 +963,7 @@ process_pfas <- function(pfas_list, data) {
       PFAS = pfas_list[[pfas_var]],
       Estimate_CI_White = results_White$Estimate_CI,
       Estimate_CI_Other = results_Other$Estimate_CI,
-      P_Value_Interact = interaction_p_val,
+      P_Interaction = interaction_p_val,
       stringsAsFactors = FALSE))
   }
   return(combined_results)
@@ -975,8 +978,7 @@ pfas_list <- c("PFOA_log2" = "PFOA",
                "ETPFOSA_cat" = "Et-FOSAA")
 
 # Getting the results and printing them
-Interaction_race <- process_pfas(pfas_list, pfas_folate)
-print(Interaction_race)
+Table_S3_noPFDEA <- process_pfas(pfas_list, pfas_folate)
 
 # Evaluating the categorized PFDEA variable:
 # Running the models
@@ -1005,8 +1007,7 @@ PFDEA_results <- data.frame(
     round(confint(model_White)["PFDEA_cat>0.2", 2], 1),
     round(confint(model_Other)["PFDEA_cat>0.2", 2], 1)),
   P_Interaction = c(NA,round(summary(model_Other)$coefficients['PFDEA_cat0.2:momrace_relevOther', 'Pr(>|t|)'], 3),
-    NA,round(summary(model_Other)$coefficients['PFDEA_cat>0.2:momrace_relevOther', 'Pr(>|t|)'], 3))
-)
+    NA,round(summary(model_Other)$coefficients['PFDEA_cat>0.2:momrace_relevOther', 'Pr(>|t|)'], 3)))
 
 # Expanding the dataset to have separate columns for each category of PFDEA
 PFDEA_results2 <- PFDEA_results %>%
@@ -1017,30 +1018,29 @@ PFDEA_results2 <- PFDEA_results %>%
 # Combining the effect estimates and CIs into a single string
 PFDEA_results2 <- PFDEA_results2 %>%
   mutate(
-    `White, non-Hispanic` = paste0(
+    Estimate_CI_White = paste0(
       `Effect_Estimate_White, non-Hispanic`, 
       " (", `CI_Lower_White, non-Hispanic`, ", ", `CI_Upper_White, non-Hispanic`, ")"),
-    `Another race or ethnicity` = paste0(
+    Estimate_CI_Other = paste0(
       `Effect_Estimate_Another Race or Ethnicity`, 
-      " (", `CI_Lower_Another Race or Ethnicity`, ", ", `CI_Upper_Another Race or Ethnicity`, ")")
-  )
+      " (", `CI_Lower_Another Race or Ethnicity`, ", ", `CI_Upper_Another Race or Ethnicity`, ")"))
 
 # Selecting and renaming the columns for the final data frame
-PFDEA_results <- PFDEA_results2 %>%
-  select(
+Table_S3_PFDEA <- PFDEA_results2 %>%
+  dplyr::select(
     PFDEA_Cat,
-    `White, non-Hispanic`,
-    `Another race or ethnicity`,
+    Estimate_CI_White,
+    Estimate_CI_Other,
     `P_Interaction_Another Race or Ethnicity`) %>%
   rename(
-    "Log2- PFAS" = PFDEA_Cat,
-    "P-interaction" = `P_Interaction_Another Race or Ethnicity`)
+    "PFAS" = PFDEA_Cat,
+    "P_Interaction" = `P_Interaction_Another Race or Ethnicity`)
 
-# Printing the results
-print(PFDEA_results)
+# Stacking the output of these 2 tables
+Table_S3 <- rbind(Table_S3_noPFDEA, Table_S3_PFDEA)
 
 # Removing items that are unnecessary
-rm(Interaction_race, PFDEA_results2)
+rm(PFDEA_results, PFDEA_results2, model_Other, model_White, extract_results, process_pfas, Table_S3_noPFDEA, Table_S3_PFDEA)
 ```
 
 This block of code 
@@ -1090,15 +1090,14 @@ process_pfas <- function(pfas_list, data) {
       PFAS = pfas_list[[pfas_var]],
       Estimate_CI_Less = results_less$Estimate_CI,
       Estimate_CI_Every = results_less$Estimate_CI,
-      P_Value_Interact = interaction_p_val,
+      P_Interaction = interaction_p_val,
       stringsAsFactors = FALSE))
   }
   return(combined_results)
 }
 
-# Running the results through each PFAS in the PFAS list and printing them
+# Running the results through each PFAS in the PFAS list
 Interaction_vitamin <- process_pfas(pfas_list, pfas_folate)
-print(Interaction_vitamin)
 
 # Evaluating the categorized PFDEA variable
 model <- lm(WBF2 ~ PFDEA_cat * prenatal_vitamin_relev + PFDEA_cat + parity + prenatal_vitamin_relev + midincome + momagedeliv + cotinine_16w_log2, data = pfas_folate)
@@ -1131,19 +1130,22 @@ PFDEA_results2 <- PFDEA_results %>%
 
 # Combining the effect estimates and CIs into a single string
 PFDEA_results2 <- PFDEA_results2 %>%
-  mutate(`Less than daily` = paste0(`Effect_Estimate_Less than daily`, " (", `CI_Lower_Less than daily`, ", ", 
+  mutate(Estimate_CI_Less = paste0(`Effect_Estimate_Less than daily`, " (", `CI_Lower_Less than daily`, ", ", 
                                     `CI_Upper_Less than daily`, ")"),
-         `Every day` = paste0(`Effect_Estimate_Every day`, " (", 
+         Estimate_CI_Every = paste0(`Effect_Estimate_Every day`, " (", 
                                   `CI_Lower_Every day`, ", ", `CI_Upper_Every day`, ")"))
 
 # Selecting and renaming the columns for the final data frame
 PFDEA_results <- PFDEA_results2 %>%
-  select(PFDEA_Cat, `Less than daily`, `Every day`, `P_Interaction_Every day`) %>%
-  rename("Log2- PFAS" = PFDEA_Cat, "P-interaction" = `P_Interaction_Every day`)
+  dplyr::select(PFDEA_Cat, Estimate_CI_Less, Estimate_CI_Every, `P_Interaction_Every day`) %>%
+  rename("PFAS" = PFDEA_Cat, "P_Interaction" = `P_Interaction_Every day`)
+
+# Stacking the output of these 2 tables
+Table_S4 <- rbind(Interaction_vitamin, PFDEA_results)
 
 # Printing the final results table
-print(PFDEA_results)
+print(Table_S4)
 
 # Removing items that are unnecessary
-rm(Interaction_vitamin, PFDEA_results2, pfas_list)
+rm(Interaction_vitamin, PFDEA_results2, pfas_list, model, PFDEA_results, extract_results, process_pfas)
 ```
