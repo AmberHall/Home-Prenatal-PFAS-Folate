@@ -1,38 +1,39 @@
 ---
 title: 'PFAS/Folate'
 author: 'Amber Hall and Harin Lee'
-output: pdf_document
-date: '2023-08-7'
-editor_options: 
-chunk_output_type: inline
+output: html_document
+date: '2023-08-07'
 ---
+
 Date created: July 10, 2023
 Date last edited: July 4, 2024
 
 This block of code: 
+  
   1. Loads all needed packages.
-```{r libraries, include=FALSE}
+```{r libraries}
 # Clearing all objects, including hidden objects
 rm(list = ls(all.names = TRUE))
 
 # Importing needed libraries
-library("haven")
-library("tidyverse")
-library("qgcomp")
-library("knitr")
-library("kableExtra")
-library("reshape2") #For the heatmap
-library("gridExtra")
-library("broom")
-library("bkmr")
-library("patchwork")
-library("cowplot")
+suppressWarnings(suppressMessages(library("haven")))
+suppressWarnings(suppressMessages(library("tidyverse")))
+suppressWarnings(suppressMessages(library("qgcomp")))
+suppressWarnings(suppressMessages(library("knitr")))
+suppressWarnings(suppressMessages(library("kableExtra")))
+suppressWarnings(suppressMessages(library("reshape2"))) #For the heatmap
+suppressWarnings(suppressMessages(library("gridExtra")))
+suppressWarnings(suppressMessages(library("broom")))
+suppressWarnings(suppressMessages(library("bkmr")))
+suppressWarnings(suppressMessages(library("patchwork")))
+suppressWarnings(suppressMessages(library("cowplot")))
 ```
 
 This block of code: 
-  1. Imports the "pfas_long" and "covars_data" data sets. 
-  2. Cleans up the "pfas_long" data set to make a "pfas_only" data set with the pfas, pfc, and participant id data. 
-  3. Merges the "pfas_only" data set with the "covars_data" data set to create the "pfas_folate" data set.
+
+   1. Imports the "pfas_long" and "covars_data" data sets. 
+   2. Cleans up the "pfas_long" data set to make a "pfas_only" data set with the pfas, pfc, and participant id data. 
+   3. Merges the "pfas_only" data set with the "covars_data" data set to create the "pfas_folate" data set.
 ```{r import}
 # Importing all needed files
 pfas_long <- read_sas("/Users/amber/Desktop/Harin/PFAS and Folate/Analysis/Data/biom_pfas.sas7bdat") # imports pfas data set
@@ -69,17 +70,16 @@ rm(pfas_only, covars_data, pfas_folate0, folate_data, pfas_folate2)
 ```
 
 This block of code: 
-  1. Categorizes 
+
+   1. Categorizes 
         a. Maternal race (White non-Hispanic, Other) 
         b. Prenatal vitamin intake (Daily, Less than daily)
         c. Parity (Nulliparous, Parous)
-     Note. These categories were decided after extensive functional form evaluation balancing AICs and biological interpretation as      well as addressing data sparsity concerns. 
-  
-  2. Categorizes 
+     Note. These categories were decided after extensive functional form evaluation balancing AICs and biological interpretation as well as addressing data sparsity concerns. 
+   2. Categorizes 
         a. Cotinine (<0.015 [Unexposed], 0.015 to 3 [Secondhand], >3 [Active smoker])
         b. Annual household income (<$20,000, $20,000 - $40,000, $40,000 - $80,000, >$80,000)
      Note. These categorical variables were used for table 2 only. They are reported this way due to better interpretability. 
-     
   3. Log-transforms cotinine
 ```{r covariates}
 #Categorizing:
@@ -109,8 +109,9 @@ pfas_folate$cotinine_16w_log2 <- log2(pfas_folate$cotinine_16w)
 
 Table 1. 
 These block of code 
-    1. Summarizes the numerical values of the data set by finding the mean, standard deviation, median, percentiles, and min/max     values of the PFAS. 
-    2. Creates a summary table ("pfas_summary") showing the frequency and percentage of each PFAS that is above/below the limit of detection (LOD).
+
+   1. Summarizes the numerical values of the data set by finding the mean, standard deviation, median, percentiles, and min/max values of the PFAS. 
+  2. Creates a summary table ("pfas_summary") showing the frequency and percentage of each PFAS that is above/below the limit of detection (LOD).
 ```{r Table_1}
 # Looking at the univariate statistics and the number of missing values for the PFAS
 # Creating a function to create a summary table with the min, max and quartiles
@@ -165,12 +166,14 @@ rm(pfas_long, create_summary, PFAS_list, pfas_univariate, pfas_LOD_info)
 ```
 
 This block of code 
-    1. Log-transforms all continuous PFAS (PFOS, PFOA, PFHxS, PFNA, Me-PFOSA-AcOH)
-    2. Categorizing Et-PFOSA-AcOH (<LOD, >=LOD) and PFDEA (<0.2, 0.2, >0.2)
+
+   1. Log-transforms all continuous PFAS (PFOS, PFOA, PFHxS, PFNA, Me-PFOSA-AcOH)
+  2. Categorizes Et-PFOSA-AcOH (<LOD, >=LOD) and PFDEA (<0.2, 0.2, >0.2)
 
 Notes. 
-    a. PFAS in this dataset have already been imputed using the LOD/sqrt(2). 
-    b. Et-PFOSA-AcOH was categorized due to a large number of nondetects; PFDEA was categorized around 0.2 ng/mL (<0.2, 0.2, >0.2) due to a point mass issue (specifically, a disproportionate number of individuals had a value at 0.2. This is likely the result of the lab equipment not being specific enough to detect PFDEA with greater precision.)
+   
+   a. PFAS in this dataset have already been imputed using the LOD/sqrt(2). 
+   b. Et-PFOSA-AcOH was categorized due to a large number of nondetects; PFDEA was categorized around 0.2 ng/mL (<0.2, 0.2, >0.2) due to a point mass issue (specifically, a disproportionate number of individuals had a value at 0.2. This is likely the result of the lab equipment not being specific enough to detect PFDEA with greater precision.)
 ```{r PFAS_transformations}
 # Log transforming PFAS to be used in a functionality form assessment
 pfas_folate <- pfas_folate %>%
@@ -190,7 +193,8 @@ pfas_folate <- pfas_folate %>%
 ```
 
 Table 2. This block of code 
-  1. finds the mean (standard deviation [SD]) for continuous variables and frequency (percentage) for categorical variables 
+
+  1. Finds the mean (standard deviation [SD]) for continuous variables and frequency (percentage) for categorical variables 
       
 Note. Continuous variables have already been evaluated for normality to ensure that mean (SD) is the best representation of central tendency. 
 ```{r Table_2_demographics}
@@ -234,6 +238,9 @@ print(Table_2_cat)
 rm(table_cat, folate_mean_sd, maternal_age_mean_sd)
 ```
 
+This block of code
+
+  1. Determines the mean (SD) of folate for each category of the demographic variables
 ```{r Table_2_folate}
 # Creating a function to calculate mean and SD for each category of a variable
 calc_mean_sd <- function(df, cat_var, value_var) {
@@ -260,7 +267,8 @@ rm(categorical_v, calc_mean_sd, results)
 ```
 
 This block of code 
-    1. Creates a correlation heat map of log2-transformed PFAS using pearson correlation coefficients.
+
+   1. Creates a correlation heat map of log2-transformed PFAS using pearson correlation coefficients.
 ```{r Figure_S2}
 # Creating a data set of the numerical 'pfas_folate' data called data_num to be used in creating a correlation matrix. 
     #Note. Only PFAS that are analyzed continuously are included
@@ -304,7 +312,10 @@ PFAS_corr <-ggplot(data = melted_corr_mat, aes(x = Var1 , y = Var2, fill = value
     axis.text.y = element_text(size = 10, color = "black"),
     legend.box.background = element_rect(color = "black", fill = NA, linewidth = 0.3),  
     legend.box.margin = margin(5, 5, 5, 5)) 
-    
+
+# Printing the figure
+print(PFAS_corr)
+
 #Exporting the figure out into a folder on my computer
 fig_cont <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/SFigure2.tiff", plot = PFAS_corr, 
        device = "tiff", 
@@ -312,11 +323,12 @@ fig_cont <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/SFigu
        dpi = 300)
 
 # Removing items that are unnecessary
-rm(pfas_folate2, data_num, corr_mat, melted_corr_mat, fig_cont, PFAS_corr)
+rm(data_num, corr_mat, melted_corr_mat, fig_cont, PFAS_corr)
 ```
 
-This block of code 
-    1. Runs the linear regression models for the 5 continuously analyzed log2(PFAS) adjusting for parity, prenatal vitamin intake, maternal race, income, maternal age, and cotinine.
+This block of code
+
+  1. Runs the linear regression models for the 5 continuously analyzed log2(PFAS) adjusting for parity, prenatal vitamin intake, maternal race, income, maternal age, and cotinine.
 ``` {r Table_S1_LR_linear_adj}
 # Renaming the Me-PFOSA-AcOH variable
 pfas_folate$MeFOSAA_log2 <- pfas_folate$`ME-PFOSA-ACOH2_log2`
@@ -346,7 +358,8 @@ rm(extract_model_results)
 ```
 
 This block of code 
-    1. Runs the CRUDE linear regression models for the 5 continuously analyzed log2(PFAS) [i.e. does not adjust for covariates].
+   
+   1. Runs the CRUDE linear regression models for the 5 continuously analyzed log2(PFAS) [i.e. does not adjust for covariates].
     
 Note. The maternal race variable changes PFNA and PFHxS from statistically significant to not significant. As such, it's important to note that the PFAS-folate relationship for this data is confounded by race. 
 ``` {r Table_S1_LR_linear_CRUDE}
@@ -374,7 +387,8 @@ rm(extract_model_results_CRUDE, PFAS)
 ```
 
 This block of code 
-    1. Runs the linear regression models for the 2 categorically analyzed PFAS (PFDEA and Et-FOSAA), adjusting for parity, prenatal vitamin intake, maternal race, income, maternal age, and cotinine.
+
+  1. Runs the linear regression models for the 2 categorically analyzed PFAS (PFDEA and Et-FOSAA), adjusting for parity, prenatal vitamin intake, maternal race, income, maternal age, and cotinine.
 ``` {r Table_S1_LR_cat_adj}
 # Running the linear regression models
 pfdea_results <- lm(WBF2 ~ PFDEA_cat + parity + prenatal_vitamin + mom_race + midincome + momagedeliv + cotinine_16w_log2, data = pfas_folate)
@@ -416,7 +430,8 @@ rm (pfdea_results, etfosaa_results, pfdea_summary, etfosaa_summary, pfdea_conf_i
 ```
 
 This block of code 
-    1. Runs the CRUDE linear regression models for the 2 categorically analyzed PFAS.
+
+  1. Runs the CRUDE linear regression models for the 2 categorically analyzed PFAS.
 ``` {r Table_S1_LR_cat_CRUDE}
 # Running the linear regression models for each PFAS
 # PFDEA
@@ -463,6 +478,7 @@ rm (pfdea_results, etfosaa_results, pfdea_summary, etfosaa_summary, pfdea_conf_i
 ```
 
 This block of code 
+
   1. Creates the output for Supplemental Table 1 by combing the four tables I created in the 2 code blocks above. 
 ``` {r Table_S1_Final}
 # Combining the 2 adjusted dataframes
@@ -485,7 +501,8 @@ rm (Table_S1_cont_adj, Table_S1_cat_adj, Table_S1_cont_CRUDE, Table_S1_cat_CRUDE
 ```
 
 This block of code 
-  1. Creates the forest plots to display the results from the adjusted linear regression models for all continuous variables
+  
+   1. Creates a plot to display the results from the adjusted linear regression models for all continuous variables
 ``` {r Figure1_cont}
 # Creating a dataframe with the results from the linear regression models (see above)
 data <- data.frame(
@@ -500,7 +517,7 @@ fig1_cont<- ggplot(data, aes(x = Estimate, y = PFAS)) +
   geom_point(color = "black") +
   geom_errorbarh(aes(xmin = Lower_CI, xmax = Upper_CI), height = 0.2, color = "black") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "red") +
-  labs(x = "β (95%CI)", y = "") +
+  labs(x = expression(beta ~ "(95% CI)"), y = "") +
   scale_x_continuous(limits = c(-40,80), breaks = seq(-40, 80, by = 10)) +
   theme_minimal(base_size = 12) +
   theme(
@@ -513,6 +530,9 @@ fig1_cont<- ggplot(data, aes(x = Estimate, y = PFAS)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank())
 
+# Printing the figure
+print(fig1_cont)
+
 #Exporting the figure out into a folder on my computer
 fig1_cont <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure1_cont.tiff", plot = fig1_cont, 
        device = "tiff", 
@@ -524,12 +544,13 @@ rm(data, fig1_cont)
 ```
 
 This block of code
-  1. Creates forest plots to display the results from the adjusted linear regression models for all categorical variables
+
+   1. Creates a plot to display the results from the adjusted linear regression models for all categorical variables
 ``` {r Figure1_cat}
 # Creating a dataframe for coategorical variables
 data <- data.frame(
-  PFAS = factor(c("PFDEA (>0.2 ng/mL)", "PFDEA (0.2 ng/mL)", "", "Et-FOSAA (≥LOD)"), 
-                levels = c("PFDEA (>0.2 ng/mL)", "PFDEA (0.2 ng/mL)", "", "Et-FOSAA (≥LOD)")),
+  PFAS = factor(c("PFDEA (>0.2 ng/mL)", "PFDEA (0.2 ng/mL)", "", "Et-FOSAA (\u2265 LOD)"), 
+                levels = c("PFDEA (>0.2 ng/mL)", "PFDEA (0.2 ng/mL)", "", "Et-FOSAA (\u2265 LOD)")),
   Estimate = c(51.0, 67.4, NA, -32.2),
   Lower_CI = c(-18.4, 4.5, NA, -87.3),
   Upper_CI = c(120.3, 130.4, NA, 22.9))
@@ -539,7 +560,7 @@ fig1_cat <- ggplot(data, aes(x = Estimate, y = PFAS)) +
   geom_point(color = "black", na.rm = TRUE) +
   geom_errorbarh(aes(xmin = Lower_CI, xmax = Upper_CI), height = 0.2, color = "black", na.rm = TRUE) +
   geom_vline(xintercept = 0, linetype = "dotted", color = "red") +
-  labs(x = "β (95%CI)", y = "") +
+  labs(x = expression(beta ~ "(95% CI)"), y = "") +
   scale_x_continuous(limits = c(-100, 140), breaks = seq(-100, 160, by = 20)) +
   theme_minimal(base_size = 12) +
   theme(
@@ -552,6 +573,9 @@ fig1_cat <- ggplot(data, aes(x = Estimate, y = PFAS)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank())
 
+# Printing the figure
+print(fig1_cat)
+
 # Exporting the figure out
 fig1_cat <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure1_cat.tiff", plot = fig1_cat, 
        device = "tiff", 
@@ -563,45 +587,45 @@ rm(data, fig1_cat)
 ```
 
 This block of code 
-    1. Runs the quantile-based g-computation model for the 5 continuously analyzed log2(PFAS), adjusted for covariates.
+
+  1. Runs the quantile-based g-computation model for the 5 continuously analyzed log2(PFAS), adjusted for covariates.
 
 Note. For more on quantile-based g-computation, visit: https://ehp.niehs.nih.gov/doi/full/10.1289/EHP5838
 ``` {r QG_comp}
 # Creating a list of the PFAS I am evaluating called Xnm
 Xnm <- c('MeFOSAA_log2', 'PFHXS_log2', 'PFNA_log2', 'PFOA_log2', 'PFOS_log2')
 
-# Running the quantile-based g-computaiton model
-    #Note. This is using default settings (looking at quartiles, not bootstrapping, etc)
-qc.fitadj <- qgcomp.noboot(WBF2 ~ PFOS_log2 + PFOA_log2 + PFNA_log2 + PFHXS_log2 + MeFOSAA_log2 +
-                          parity + prenatal_vitamin + mom_race + midincome + momagedeliv + cotinine_16w_log2,
-                        expnms = Xnm, data=pfas_folate, family = gaussian())
-
-# Extracting the results I am interested in from the model
-estimates <- coef(qc.fitadj)
-conf_intervals <- confint(qc.fitadj)
-p_values <- summary(qc.fitadj)$coefficients[, "Pr(>|t|)"]
-
-# Creating ta dataframe with the results
-qg_comp_results <- data.frame(
-  psi = names(estimates),
-  estimate = as.numeric(estimates),
-  lower_CI = conf_intervals[, 1],
-  upper_CI = conf_intervals[, 2],
-  p_value = p_values
+# Running the quantile-based g-computation model
+# Note: This is using default settings (looking at quartiles, not bootstrapping, etc)
+qc.fitadj <- qgcomp.noboot(
+  WBF2 ~ PFOS_log2 + PFOA_log2 + PFNA_log2 + PFHXS_log2 + MeFOSAA_log2 +
+    parity + prenatal_vitamin + mom_race + midincome + momagedeliv + cotinine_16w_log2,
+  expnms = Xnm, data = pfas_folate, family = gaussian()
 )
 
-# Removing the row containing the intercept
-qg_comp_results <- qg_comp_results[qg_comp_results$psi != "(intercept)", ]
+# Extracting the results from the model
+estimates <- coef(qc.fitadj)
+conf_intervals <- confint(qc.fitadj)
+
+# Creating a dataframe with the results and removing the intercept row
+qg_comp_results <- data.frame(
+  Estimate_95CI = paste0(
+    round(as.numeric(estimates), 1), " (", 
+    round(conf_intervals[, 1], 1), ", ", 
+    round(conf_intervals[, 2], 1), ")")
+)
+qg_comp_results <- qg_comp_results[-1, , drop = FALSE]  # Drop = FALSE to keep as dataframe
 
 # Printing the results
 print(qg_comp_results)
 
 # Removing items that are unnecessary
-rm(estimates, p_values, conf_intervals, qc.fitadj, Xnm)
+rm(estimates, conf_intervals, qc.fitadj, Xnm)
 ```
 
 This block of code creates 
-    1. A figure to display the fixed weights from the quantile-based g-computation model
+
+   1. A figure to display the fixed weights from the quantile-based g-computation model
 ``` {r Figure_S3}
 # Creating a dataset to use for this figure
     #Note. This data was obtained from the quantile-based g-computation model in the chunk above. 
@@ -631,6 +655,9 @@ qgcomp_wt_plot <- ggplot(qgcomp.df, aes(y = category)) +
     labels = seq(-1, 1, by = 0.25)) +
   geom_vline(xintercept = 0, color = "black", size = 0.5)
 
+# Printing the figure
+print(qgcomp_wt_plot)
+
 #Exporting the figure out into a folder on my computer
 qgcomp_wt_plot <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/SFigure3.tiff", plot = qgcomp_wt_plot, 
        device = "tiff", 
@@ -642,7 +669,8 @@ rm(qgcomp.df, qgcomp_wt_plot)
 ```
 
 This block of code 
-    1. Runs the Bayesian Kernel Machine Regression (BKMR) model for the 5 continuously analyzed log2(PFAS), adjusted for covariates.
+
+   1. Runs the Bayesian Kernel Machine Regression (BKMR) model for the 5 continuously analyzed log2(PFAS), adjusted for covariates.
     
 Note. For more on BKMR, visit: https://jenfb.github.io/bkmr/overview.html
 ``` {r BKMR_adj}
@@ -671,14 +699,16 @@ fitkm <- kmbayes(y = y, Z = Z, X = X, iter = 50000, verbose = FALSE, varsel = TR
 ```
 
 This block of code 
-    1.Extracts posterior inclusion probabilities (PIPs) for each PFAS in the model. These PIPs represent the contribution of each PFAS to the overall mixture
+
+   1.Extracts posterior inclusion probabilities (PIPs) for each PFAS in the model. These PIPs represent the contribution of each PFAS to the overall mixture
 ``` {r Table_S2}
 # Extracting the PIPs from the BKMR model
 PIPs<- ExtractPIPs(fitkm)
 ```
 
 This block of code 
-    1. Creates a plot of the adjusted differences in total folate levels by PFAS mixture quantile (ranging from 25% to 75%). 
+
+  1. Creates a plot of the adjusted differences in total folate levels by PFAS mixture quantile (ranging from 25% to 75%). 
 ``` {r Figure_2} 
 # Calculating the difference in folate levels for each quantile
 risks.overall <- OverallRiskSummaries(fit = fitkm, y = y, Z = Z, X = X, 
@@ -703,6 +733,9 @@ Quant <- ggplot(risks.overall, aes(x = quantile, y = est, ymin = est - 1.96 * sd
     axis.line.y = element_line(color = "black", size = 0.5),
     axis.ticks = element_line(color = "black", size = 0.5))
 
+# Printing the figure
+print(Quant)
+
 # Exporting the figure out into a folder on my computer
 Quant <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure2.tiff", plot = Quant, 
        device = "tiff", 
@@ -710,11 +743,12 @@ Quant <-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure2.
        dpi = 300)
 
 #Removing unneeded items
-rm(Quant)
+rm(Quant, risks.overall)
 ```
 
 This block of code 
-    1. Creates a plot of adjusted differences in total folate for each PFAS (by quartile; i.e. ranging from 25% to 75%). 
+
+   1. Creates a plot of adjusted differences in total folate for each PFAS (by quartile; i.e. ranging from 25% to 75%). 
 ``` {r Figure_3}
 # Calculating adjusted differences in total folate for each PFAS (by quartile), with other PFAS set at the median
 risks.singvar <- SingVarRiskSummaries(fit = fitkm, qs.diff = c(0.25, 0.75),
@@ -727,8 +761,7 @@ labels <- c(
   "PFHXS_log2" = "PFHxS",
   "PFNA_log2" = "PFNA",
   "PFOA_log2" = "PFOA",
-  "PFOS_log2" = "PFOS"
-)
+  "PFOS_log2" = "PFOS")
 
 # Creating the plot
 fig3 <- ggplot(risks.singvar, aes(x = variable, y = est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd, col = q.fixed)) + 
@@ -756,24 +789,24 @@ fig3 <- ggplot(risks.singvar, aes(x = variable, y = est, ymin = est - 1.96 * sd,
     axis.line.x = element_line(color = "black", size = 0.5),  
     axis.line.y = element_line(color = "black", size = 0.5),  
     axis.ticks.x = element_line(color = "black", size = 0.5),  
-    axis.ticks.length.x = unit(0.2, "cm")
-  ) + 
+    axis.ticks.length.x = unit(0.2, "cm")) + 
   scale_x_discrete(name = "", labels = labels) +
   scale_y_continuous(name = "Difference in total folate (nmol/L)", limits = c(-60, 60), breaks = seq(-60, 60, by = 20)) +
   scale_color_manual(name = "Quartile", values = c("red", "darkgreen", "blue"), labels = c("25%", "50%", "75%"))
 
+# Printing the figure
+print(fig3)
+
 # Exporting the figure to a folder on your computer
-ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure3.tiff", plot = fig3, 
-       device = "tiff", 
-       width = 7.5, height = 4, units = "in", 
-       dpi = 300)
+ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure3.tiff", plot = fig3, device = "tiff", width = 7.5, height = 4, units = "in", dpi = 300)
 
 # Removing items I do not need
-rm(fig3)
+rm(fig3, risks.singvar)
 ```
 
 This block of code 
-    1. Creates bivariate plots of PFAS to evaluate interactions between each PFAS with one another (10th, 50th, and 90th percentiles) when all other PFAS are fixed at the median. 
+
+   1. Creates bivariate plots of PFAS to evaluate interactions between each PFAS with one another (10th, 50th, and 90th percentiles) when all other PFAS are fixed at the median. 
 ``` {r Figure_4}
 pred.resp.bivar <- PredictorResponseBivar(fit = fitkm, min.plot.dist = 1)
 pred.resp.bivar.levels <- PredictorResponseBivarLevels(
@@ -785,31 +818,30 @@ labels2 <- c(
   "PFHXS_log2" = "PFHxS associations when another PFAS is\n fixed at the 10th, 50th, and 90th percentile",
   "PFNA_log2" = "PFNA associations when another PFAS is\n fixed at the 10th, 50th, and 90th percentile",
   "PFOA_log2" = "PFOA associations when another PFAS is\n fixed at the 10th, 50th, and 90th percentile",
-  "PFOS_log2" = "PFOS associations when another PFAS is\n fixed at the 10th, 50th, and 90th percentile"
-  )
+  "PFOS_log2" = "PFOS associations when another PFAS is\n fixed at the 10th, 50th, and 90th percentile")
 
 # Creating a function to make each PFAS plot
 create_plot <- function(data, variable) {
   ggplot(data, aes(x = z1, y = est, color = factor(quantile))) + 
-    geom_smooth(stat = "identity", size = 1) +  # Thinner lines with colors
-    geom_hline(yintercept = 0, linetype = "dotted", color = "black") +  # Black dotted line at y = 0
+    geom_smooth(stat = "identity", size = 1) +  
+    geom_hline(yintercept = 0, linetype = "dotted", color = "black") +  
     facet_grid(variable2 ~ variable1, labeller = labeller(variable1 = labels2, variable2 = labels)) +
-    scale_color_manual(values = c("red", "darkgreen", "blue")) +  # Custom color palette
-    theme_minimal(base_size = 15) +  # Clean, minimal theme with larger base font size
-    labs(x = "PFAS z-score\n", y = "Total folate (nmol/L)") +  # Axis labels
+    scale_color_manual(values = c("red", "darkgreen", "blue")) +  
+    theme_minimal(base_size = 15) +  
+    labs(x = "PFAS z-score\n", y = "Total folate (nmol/L)") +  
     ylim(-60, 80) +
     theme(
-      axis.title = element_text(size = 16, color = "black"),  # Axis title style
-      axis.text = element_text(size = 14, color = "black"),  # Axis text style
-      strip.text = element_text(size = 16),  # Facet label style
-      strip.text.y = element_text(angle = 0),  # Ensure y-axis labels are not cut off
-      panel.grid.major = element_blank(),  # Remove major grid lines
-      panel.grid.minor = element_blank(),  # Remove minor grid lines
-      panel.border = element_rect(color = "black", fill = NA),  # Add border around panels
-      legend.position = "none",  # Remove legend
-      plot.margin = unit(c(1, 1, 1, 1), "cm"),  # Add margin to ensure labels are not cut off
+      axis.title = element_text(size = 16, color = "black"),  
+      axis.text = element_text(size = 14, color = "black"),  
+      strip.text = element_text(size = 16),  
+      strip.text.y = element_text(angle = 0),  
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),  
+      panel.border = element_rect(color = "black", fill = NA),  
+      legend.position = "none",  
+      plot.margin = unit(c(1, 1, 1, 1), "cm"),  
       plot.background = element_rect(fill = "white", color = NA),
-    )
+      )
 }
 
 # Creating individual PFAS plots
@@ -817,7 +849,7 @@ plots <- lapply(unique(pred.resp.bivar.levels$variable1), function(var) {
   data_filtered <- pred.resp.bivar.levels %>% filter(variable1 == var)
   create_plot(data_filtered, var)
   }
-)
+  )
 
 # Combining these plots into a 2-column singular figure
 bkmr_int <- wrap_plots(plots, ncol = 2) &
@@ -825,20 +857,19 @@ bkmr_int <- wrap_plots(plots, ncol = 2) &
 
 # Exporting this figure out
 ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure4.tiff", 
-       plot = bkmr_int, 
-       device = "tiff", 
-       width = 14, height = 20, 
-       dpi = 300)
+       plot = bkmr_int, device = "tiff", width = 14, height = 20, dpi = 300)
 
 # Removing items I do not need
-rm (pred.resp.df, labels2, create_plot, plots, bkmr_int)
+rm (pred.resp.bivar, pred.resp.df, labels2, create_plot, plots, bkmr_int)
 ```
 
-Creating just the legend for Figure 4
+This block of code
+
+   1. Creates the legend for Figure 4
 
 Note. I put these together in ppt and export the final figure out as a .tiff file. 
 ``` {r Figure_4_Legend} 
-#Filtering the data for Me-PFOSA-AcOH for efficiency 
+# Filtering the data for Me-PFOSA-AcOH for efficiency 
 mefosaa_data <- pred.resp.bivar.levels[pred.resp.bivar.levels$variable1 == "MeFOSAA_log2", ]
 
 # Creating a dummy plot to extract the legend
@@ -850,14 +881,16 @@ dummy_plot <- ggplot(mefosaa_data, aes(x = z1, y = est, color = factor(quantile)
     legend.title = element_text(size = 12, color = "black"),  
     legend.text = element_text(size = 10, color = "black"), 
     legend.background = element_rect(color = "black", fill = NA, linewidth = 0.5),
-    plot.background = element_rect(fill = "white", color = NA)
-  )
+    plot.background = element_rect(fill = "white", color = NA))
 
 # Extracting the legend
 legend <- get_legend(dummy_plot)
 
 # Creating a blank plot with only the legend
 legend_plot <- ggdraw() + draw_grob(legend)
+
+# Printing the legend
+print(legend_plot)
 
 # Saving the legend plot to a file
 ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure4_Legend.tiff", 
@@ -867,11 +900,12 @@ ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/Figure4_Legend.t
        dpi = 300)
 
 # Removing items I do not need
-rm (dummy_plot, legend, mefosaa_data, legend_plot)
+rm (dummy_plot, legend, mefosaa_data, legend_plot, pred.resp.bivar.levels)
 ```
 
 This block of code 
-    1. Creates dose-response curves for each PFAS for the relationship between total folate and PFAS z-scores in the BKMR model, when all other PFAS are set at the median
+
+   1. Creates dose-response curves for each PFAS for the relationship between total folate and PFAS z-scores in the BKMR model, when all other PFAS are set at the median
 ``` {r Figure_S4}
 # Modeling the relationship between each PFAS and folate, where all of the other exposures are fixed at the 50th percentile.
 pred.resp.univar <- PredictorResponseUnivar(fit = fitkm)
@@ -889,6 +923,9 @@ DR <- ggplot(pred.resp.univar, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.
       axis.title.y = element_text(size = 12),
       strip.text = element_text(size = 10))
 
+# Printing the figure
+print(DR)
+
 # Exporting this figure out
 ggsave(filename = "/Users/amber/Desktop/PFAS and Folate/Figures/SFigure4.tiff", 
        plot = DR, 
@@ -901,7 +938,8 @@ rm(pred.resp.univar, labels, DR)
 ```
 
 This block of code 
-  1. Evaluates effect measure modification (EMM) by prenatal vitamin intake. 
+  
+  1. Evaluates effect measure modification (EMM) by maternal race. 
 
 Note. EMM for the 3 categories of the PFDEA was only evaluated in comparison to the ref (<0.2)
 ``` {r Table_S3}
@@ -1044,6 +1082,7 @@ rm(PFDEA_results, PFDEA_results2, model_Other, model_White, extract_results, pro
 ```
 
 This block of code 
+
   1. Evaluates effect measure modification by prenatal vitamin intake. 
 
 Note. EMM for the 3 categories of the PFDEA was only evaluated in comparison to the ref (<0.2)
