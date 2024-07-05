@@ -5,7 +5,6 @@ This is the code to accompany my co-first author paper (with Harin Lee), "Single
 This repository contains the following:
 
 1. An R markdown file with the original code and annotations.
-2. A pdf file of the rendered Rmarkdown file with the code and annotations.
-3. An html file of the R markdown file.
+2. An html file of the R markdown file.
 
 This study used data from the Health Outcomes and Measured of the Environment (HOME) Study. This data is not publically available; however, data can be requested here: https://homestudy.research.cchmc.org/contact
