@@ -1,6 +1,7 @@
 # Home-Prenatal-PFAS-Folate
 
-This is the code to accompany my co-first author paper (with Harin Lee), "Single and mixture prenatal per- and polyfluoroalkyl subsstances and total folate levels in pregnant women in the Health Outcomes and Measures if the Environment (HOME) Study" 
+This is the code to accompany my co-first author paper (with Harin Lee), "Associations of prenatal per- and polyfluoroalkyl substances with whole blood folate levels in pregnant women in the Health Outcomes and Measures of the Environment (HOME) Study"
+" 
 
 This repository contains the following:
 
